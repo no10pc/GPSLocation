@@ -97,9 +97,9 @@ namespace GPSLocation.ViewModel
                     }
 
                     WelcomeTitle = "点击开始";
-                    //Area = "所在位置";
+                    Area = "所在位置";
                     initgps = new RelayCommand<string>((x) => Executeinitgps(x));
-                   
+
                 });
         }
 
@@ -109,7 +109,7 @@ namespace GPSLocation.ViewModel
         {
             //System.Windows.MessageBox.Show("go");
             myWatcher = new GeoCoordinateWatcher(GeoPositionAccuracy.High);
-       
+
 
             myWatcher.StatusChanged += new System.EventHandler<GeoPositionStatusChangedEventArgs>(myWatcher_StatusChanged);
             myWatcher.PositionChanged += new System.EventHandler<GeoPositionChangedEventArgs<GeoCoordinate>>(myWatcher_PositionChanged);
@@ -127,15 +127,18 @@ namespace GPSLocation.ViewModel
             //client.DownloadStringCompleted += new DownloadStringCompletedEventHandler(client_DownloadStringCompleted);
 
             //http://msrmaps.com/TerraService2.asmx WEBSERVICES
-            
+            double latitude = e.Position.Location.Latitude;
+            double longitude = e.Position.Location.Longitude;
+            myTerraService.TerraServiceSoapClient client = new myTerraService.TerraServiceSoapClient();
+            client.ConvertLonLatPtToNearestPlaceCompleted += new EventHandler<myTerraService.ConvertLonLatPtToNearestPlaceCompletedEventArgs>(client_ConvertLonLatPtToNearestPlaceCompleted);
+            client.ConvertLonLatPtToNearestPlaceAsync(new myTerraService.LonLatPt { Lat = latitude, Lon = longitude });
+
+
         }
 
-        void client_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
+        void client_ConvertLonLatPtToNearestPlaceCompleted(object sender, myTerraService.ConvertLonLatPtToNearestPlaceCompletedEventArgs e)
         {
-           // Area = e.Result;
-            //web services 调用太快
-
-            
+            Area = String.Format("当前位置\n{0}",e.Result);
         }
 
         void myWatcher_StatusChanged(object sender, GeoPositionStatusChangedEventArgs e)
@@ -143,10 +146,10 @@ namespace GPSLocation.ViewModel
             switch (e.Status)
             {
                 case GeoPositionStatus.Disabled:
-                   
+
                     if (myWatcher.Permission == GeoPositionPermission.Denied)
                     {
-                     
+
                         WelcomeTitle = "you have this application access to location.";
                     }
                     else
@@ -156,18 +159,18 @@ namespace GPSLocation.ViewModel
                     break;
 
                 case GeoPositionStatus.Initializing:
-                   
+
                     WelcomeTitle = "initializing......";
                     break;
 
                 case GeoPositionStatus.NoData:
-                   
+
                     WelcomeTitle = "定位失败";
 
                     break;
 
                 case GeoPositionStatus.Ready:
-                    
+
                     WelcomeTitle = "准备就绪";
 
                     break;
