@@ -5,6 +5,7 @@ using System.Device.Location;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 using System.Net;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,6 +16,8 @@ using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using Microsoft.Phone.Controls;
 using System.Device.Location;
+using System.IO;
+using System.Text;
 
 namespace GPSLocation.ViewModel
 {
@@ -119,26 +122,36 @@ namespace GPSLocation.ViewModel
 
         void myWatcher_PositionChanged(object sender, GeoPositionChangedEventArgs<GeoCoordinate> e)
         {
-            WelcomeTitle = string.Format("当前坐标：{0}/{0}\n", e.Position.Location.Latitude.ToString("0.00000"), e.Position.Location.Longitude.ToString("0.00000"));
+            WelcomeTitle = string.Format("当前坐标：{0}/{1}\n", e.Position.Location.Latitude.ToString("0.00000"), e.Position.Location.Longitude.ToString("0.00000"));
 
-            //var url = "http://api.map.baidu.com/place/search?&query=银行&bounds=" + e.Position.Location.Latitude.ToString("0.000000") + "," + e.Position.Location.Longitude.ToString("0.000000") + "&output=json&key=8597bbe225b480205cc2deea1944c1f6";
-            //WebClient client = new WebClient();
-            //client.DownloadStringAsync(new Uri(url, UriKind.Absolute));
-            //client.DownloadStringCompleted += new DownloadStringCompletedEventHandler(client_DownloadStringCompleted);
+            //var url=http://maps.google.com/maps/api/geocode/xml?latlng=40,40&language=zh-CN&sensor=false
 
             //http://msrmaps.com/TerraService2.asmx WEBSERVICES
             double latitude = e.Position.Location.Latitude;
             double longitude = e.Position.Location.Longitude;
-            myTerraService.TerraServiceSoapClient client = new myTerraService.TerraServiceSoapClient();
-            client.ConvertLonLatPtToNearestPlaceCompleted += new EventHandler<myTerraService.ConvertLonLatPtToNearestPlaceCompletedEventArgs>(client_ConvertLonLatPtToNearestPlaceCompleted);
-            client.ConvertLonLatPtToNearestPlaceAsync(new myTerraService.LonLatPt { Lat = latitude, Lon = longitude });
+
+            Uri url = new Uri(string.Format("http://maps.google.com/maps/api/geocode/xml?latlng={0},{1}&language=zh-CN&sensor=false", latitude, longitude), UriKind.Absolute);
+
+            //GoogleAPI方式xml格式
+            WebClient xml = new WebClient();
+
+            xml.DownloadStringAsync(url);
+            xml.DownloadStringCompleted += new DownloadStringCompletedEventHandler(client_DownloadStringCompleted);
+
+
+            ///webServices方式
+            //myTerraService.TerraServiceSoapClient client = new myTerraService.TerraServiceSoapClient();
+            //client.ConvertLonLatPtToNearestPlaceCompleted += new EventHandler<myTerraService.ConvertLonLatPtToNearestPlaceCompletedEventArgs>(client_ConvertLonLatPtToNearestPlaceCompleted);
+            //client.ConvertLonLatPtToNearestPlaceAsync(new myTerraService.LonLatPt { Lat = latitude, Lon = longitude });
 
 
         }
 
+
+
         void client_ConvertLonLatPtToNearestPlaceCompleted(object sender, myTerraService.ConvertLonLatPtToNearestPlaceCompletedEventArgs e)
         {
-            Area = String.Format("当前位置\n{0}",e.Result);
+            //Area = String.Format("当前位置\n{0}", e.Result);
         }
 
         void myWatcher_StatusChanged(object sender, GeoPositionStatusChangedEventArgs e)
@@ -176,6 +189,20 @@ namespace GPSLocation.ViewModel
                     break;
             }
         }
+
+
+        void client_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
+        {
+            try
+            {
+                Area = XElement.Parse(e.Result).Elements("result").First().Element("formatted_address").Value;
+            }
+            catch
+            {
+                Area = "在跑就到火星了";
+            }
+        }
+
         ////public override void Cleanup()
         ////{
         ////    // Clean up if needed
